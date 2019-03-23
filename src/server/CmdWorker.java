@@ -39,8 +39,8 @@ public class CmdWorker {
         lastChangeDate = initDate;
         cmdMap = new HashMap<>();
 
-        cmdMap.put("load", new Key(this::load,  ""));
-        cmdMap.put("save", new Key(this::save,  ""));
+        cmdMap.put("load", new Key(this::load,  "загрузка коллекции из файла"));
+        cmdMap.put("save", new Key(this::save,  "сохранение коллекции в файл"));
         cmdMap.put("add", new Key(this::add,  "добавить новый элемент в коллекцию"));
         cmdMap.put("remove_first", new Key(this::removeFirst,  "удалить первый элемент из коллекции"));
         cmdMap.put("show", new Key(this::show,  "вывести в стандартный поток вывода все элементы коллекции в строковом представлении"));
