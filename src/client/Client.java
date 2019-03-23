@@ -1,5 +1,17 @@
 import java.net.*;
 import java.io.*;
+import javax.xml.parsers.*;
+import javax.xml.transform.*;
+import org.w3c.dom.*;
+import org.json.*;
+import java.util.PriorityQueue;
+import java.util.stream.Collectors;
+import javax.xml.transform.TransformerException;
+import javax.xml.transform.TransformerFactory;
+import javax.xml.transform.dom.DOMSource;
+import javax.xml.transform.stream.StreamResult;
+import javax.xml.transform.OutputKeys;
+import org.xml.sax.InputSource;
 
 class ClientInteraction {
     private Socket socket;
@@ -52,11 +64,11 @@ class ClientInteraction {
         public void run() {
             String str;
             try {
-                while (true && status) {
+                while (status) {
                     str = in.readLine(); // ждем сообщения с сервера
                     if (str.equals(null)) break;
                     if (str.trim().equals("")) continue;
-                    System.out.println("> " + str); // пишем сообщение с сервера на консоль
+                    System.out.println("-> " + str); // пишем сообщение с сервера на консоль
                 }
             } catch (Exception e) {
                 ClientInteraction.this.downService();
@@ -65,19 +77,65 @@ class ClientInteraction {
     }
 
     // нить отправляющая сообщения приходящие с консоли на сервер
-    public class WriteMsg extends Thread {
+    private class WriteMsg extends Thread {
         @Override
         public void run() {
             while (status) {
                 String str;
                 try {
                     str = inputUser.readLine(); // сообщения с консоли
-                    out.write(str + '\n');
-                    out.flush(); // чистим
+                    if (str.split(" ")[0].trim().equals("import"))
+                        load(str.split(" ")[1].trim());
+                    else {
+                        out.write(str + '\n');
+                        out.flush(); // чистим
+                    }
                 } catch (IOException e) {
                     ClientInteraction.this.downService(); // в случае исключения тоже харакири
                 }
             }
+        }
+    }
+
+    private void load(final String filename) {
+        PriorityQueue<City> priorityQueue = new PriorityQueue<>();
+        try {
+            FileReader reader = new FileReader(filename);
+            DocumentBuilderFactory dbFactory = DocumentBuilderFactory.newInstance();
+            DocumentBuilder dBuilder = dbFactory.newDocumentBuilder();
+            Document doc = dBuilder.parse(new InputSource(reader));
+            doc.getDocumentElement().normalize();
+
+            NodeList nList = doc.getElementsByTagName("city");
+
+            for (int temp = 0; temp < nList.getLength(); temp++) {
+                Node nNode = nList.item(temp);
+                if (nNode.getNodeType() == Node.ELEMENT_NODE) {
+                    Element eElement = (Element)nNode;
+                    priorityQueue.add(
+                    new City(eElement.getElementsByTagName("name").item(0).getTextContent(),
+                             Integer.parseInt(eElement.getElementsByTagName("size").item(0).getTextContent()),
+                             Integer.parseInt(eElement.getElementsByTagName("x").item(0).getTextContent()),
+                             Integer.parseInt(eElement.getElementsByTagName("y").item(0).getTextContent())));
+                }
+            }
+
+            String str = "";
+            final String PREAMBLE = "#####";
+            try {
+                str = Convertr.convertToByteString(priorityQueue);
+            } catch (IOException e) {}
+
+            try {
+                out.write(PREAMBLE + str + '\n');
+                out.flush();
+            } catch (IOException e) {
+                ClientInteraction.this.downService(); // в случае исключения тоже харакири
+            }
+        } catch (java.io.FileNotFoundException e) {
+            System.out.println("file not found");
+        } catch (Exception e) {
+            System.out.println("error while parsing");
         }
     }
 }

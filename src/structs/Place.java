@@ -1,7 +1,7 @@
 import java.util.Arrays;
+import java.io.Serializable;
 
-abstract class Place
-{
+abstract class Place implements Serializable {
     protected String name = "Без имени";
 
     public Place(String string) {

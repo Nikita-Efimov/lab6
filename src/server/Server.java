@@ -1,6 +1,6 @@
 import java.io.*;
 import java.net.*;
-import java.util.LinkedList;
+import java.util.*;
 
 class Handle extends Thread {
     private Socket socket; // сокет, через который сервер общается с клиентом,
@@ -35,11 +35,23 @@ class Handle extends Thread {
         }
     }
 
-    private void processInput(String userInput) {
-        // System.out.println(userInput);
-        String out = worker.doCmd(userInput);
-        if (!out.equals(""))
-            send(out);
+    private void getSerializedData(String data) {
+        try {
+            PriorityQueue<City> pq = (PriorityQueue<City>)Convertr.convertFromByteString(data);
+            worker.set(pq);
+         } catch (Exception e) {}
+    }
+
+    private void processInput(String clientData) {
+        // System.out.println("> " + clientData);
+        final String PREAMBLE = "#####";
+        if (clientData.indexOf(PREAMBLE) == 0)
+            getSerializedData(clientData.substring(PREAMBLE.length()));
+        else {
+            String out = worker.doCmd(clientData);
+            if (!out.equals(""))
+                send(out);
+        }
     }
 
     private void send(String msg) {

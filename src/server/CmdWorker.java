@@ -1,26 +1,10 @@
-import java.util.Map;
-import java.util.HashMap;
+import java.util.*;
+import org.json.*;
+import java.io.*;
+import javax.xml.parsers.*;
+import javax.xml.transform.*;
 import java.util.function.Function;
-import java.util.Date;
-import java.util.Iterator;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Arrays;
-import java.util.List;
-import org.json.JSONObject;
-import org.json.JSONException;
-import java.io.IOException;
-import java.io.FileWriter;
-import java.io.BufferedWriter;
-import java.io.FileReader;
-import java.io.File;
-import java.io.StringReader;
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.parsers.ParserConfigurationException;
-import javax.xml.transform.Transformer;
-import javax.xml.transform.TransformerException;
-import javax.xml.transform.TransformerFactory;
+import java.util.stream.Collectors;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 import javax.xml.transform.OutputKeys;
@@ -72,6 +56,10 @@ public class CmdWorker {
 
     public CmdWorker() {
         priorityQueue = new PriorityBlockingQueue<>();
+    }
+
+    public void set(PriorityQueue<City> pq) {
+        priorityQueue = new PriorityBlockingQueue<City>(pq);
     }
 
     protected City processInput(String jsonInput) {
@@ -156,8 +144,10 @@ public class CmdWorker {
                              Integer.parseInt(eElement.getElementsByTagName("y").item(0).getTextContent())));
                 }
             }
-        } catch (Exception e) {
+        } catch (java.io.FileNotFoundException e) {
             return "file not found";
+        } catch (Exception e) {
+            return "error while parsing";
         }
 
         return "";
@@ -198,7 +188,7 @@ public class CmdWorker {
             StreamResult result = new StreamResult(new BufferedWriter(new FileWriter(filename)));
 
             // create the xml file
-            //transform the DOM Object to an XML File
+            // transform the DOM Object to an XML File
             TransformerFactory transformerFactory = TransformerFactory.newInstance();
             Transformer transformer = transformerFactory.newTransformer();
             transformer.setOutputProperty(OutputKeys.OMIT_XML_DECLARATION, "no");
@@ -214,18 +204,23 @@ public class CmdWorker {
     public String removeLower(String jsonElem) {
         City city = processInput(jsonElem);
         if (city == null) return "";
-
-        StringBuilder out = new StringBuilder();
-        priorityQueue.stream().filter(e -> e.compareTo(city) < 0).forEach((e) -> out.append(e.toString() + '\n'));
         lastChangeDate = new Date();
-        return out.toString();
+
+        return priorityQueue
+        .stream()
+        .filter(e -> e.compareTo(city) < 0)
+        .map(Object::toString)
+        .collect(Collectors.joining("\n"));
     }
 
     public String addIfMax(String jsonElem) {
         City city = processInput(jsonElem);
         if (city == null) return "";
 
-        boolean addFlag = priorityQueue.stream().noneMatch(e -> e.compareTo(city) >= 0);
+        boolean addFlag = priorityQueue
+        .stream()
+        .noneMatch(e -> e.compareTo(city) >= 0);
+
         if (addFlag) {
             priorityQueue.add(city);
             lastChangeDate = new Date();
@@ -238,7 +233,10 @@ public class CmdWorker {
         City city = processInput(jsonElem);
         if (city == null) return "";
 
-        priorityQueue.stream().filter(s -> s.equals(city)).forEach((e) -> priorityQueue.remove(e));
+        priorityQueue
+        .stream()
+        .filter(s -> s.equals(city))
+        .forEach((e) -> priorityQueue.remove(e));
         return "";
     }
 
@@ -264,9 +262,10 @@ public class CmdWorker {
     }
 
     public String show(String str) {
-        StringBuilder out = new StringBuilder();
-        priorityQueue.stream().forEach(e -> out.append(e.toString() + '\n'));
-        return out.toString();
+        return priorityQueue
+        .stream()
+        .map(Object::toString)
+        .collect(Collectors.joining("\n"));
     }
 
     public String removeFirst(String str) {
@@ -286,9 +285,11 @@ public class CmdWorker {
     }
 
     public String list(String str) {
-        StringBuilder out = new StringBuilder();
-        cmdMap.keySet().stream().forEach(e -> out.append((String)e + '\n'));
-        return out.toString();
+        return cmdMap
+        .keySet()
+        .stream()
+        .map(Object::toString)
+        .collect(Collectors.joining("\n"));
     }
 
     public String exit(String str) {
